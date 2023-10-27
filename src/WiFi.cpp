@@ -132,17 +132,6 @@ void wifi_ap_server() {
 
 }
 
-// void setup() {
-//     Serial.begin(9600);
-//     wifi_connect();
-
-    // sd_spi_and_setup();
-    // http_remote_dir_show();
-    // get_file_and_call("list.txt", &http_file_to_sd);
-    // wifi_ap_server();
-// }
-
-
 
 /**
  * wifi客户端监听端口示例
@@ -190,6 +179,3 @@ void wifi_listen() {
     delay(2000);
 }
 
-// void loop() {
-//     wifi_listen();
-// }
