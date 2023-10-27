@@ -6,8 +6,8 @@
 
 WiFiServer server(80);
 
-const char* ssid = "大寨里联合办公";
-const char* pwd = "dzl88510555";
+const char* ssid = "******";
+const char* pwd = "******";
 
 String down_dir = "/localdown/";
 String remote_ip = "192.168.137.1";
