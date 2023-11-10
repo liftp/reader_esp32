@@ -120,10 +120,6 @@ void sd_files_dir(String dir) {
         next_file.close();
         next_file = read.openNextFile(FILE_READ);
     }
-    // 形成闭合链表
-    if (head != NULL) {
-        last_file->next = head;
-    }
     // 设置全局变量文件列表
     file_list = head;
 }

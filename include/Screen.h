@@ -13,6 +13,8 @@
 
 void multi_line_menu_show(const char **str, int line_num);
 
+void line_pos_show_menu(const char **str, int line_size, int show_line);
+
 void init_screen(SPIClass &spi);
 
 #endif

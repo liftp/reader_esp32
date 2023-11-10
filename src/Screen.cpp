@@ -45,6 +45,44 @@ void init_char_width() {
 }
 
 /**
+ * 指定到某行显示操作菜单
+*/
+void line_pos_show_menu(const char **str, int line_size, int show_line) {
+  uint16_t left_x = 15;
+  uint16_t init_height = 15;
+  uint16_t h_gap = 5;
+  int box_h = line_size * init_height + ((line_size - 1) * h_gap);
+  // TODO 菜单宽暂时固定,应该根据str的字符串最宽决定
+  int box_w = 4 * cn_char_len + 10;
+  // 当前行的中间
+  int box_y = show_line * init_height + ((show_line - 1) * h_gap) - (init_height / 2);
+  if (box_y < 0)  {
+    // 防止初始高度超过屏幕顶部
+    box_y = 0;
+  } else if (box_y + box_h > display.height()) {
+    // 防止底部高度超过屏幕底部，但仍需注意是否偏移到屏幕顶
+    box_y -= (box_y + box_h - display.height());
+    box_y = box_y > 0 ? box_y : 0;
+  }
+  // TODO 屏幕水平位置暂未兼容超出屏幕情况
+  int box_x = display.width() / 2;
+  display.setPartialWindow(box_x, box_y, box_w, box_h);
+  display.firstPage();
+  int i = 0;
+  // 局部填白
+  display.fillRect(box_x, box_y, box_w, box_h, GxEPD_WHITE);
+  
+  while (i < line_size) {
+    // 设置文字
+    u8g2Fonts.setCursor(box_x + 5, box_h + 2);
+    u8g2Fonts.print(str[i++]);
+    // 下划线
+    display.drawFastHLine(box_x, box_h + 3, box_w, GxEPD_BLACK);
+  }
+  refresh_screen();
+}
+
+/**
  * 菜单显示
  * @param str 多行数据数组指针
  * @param line_num 显示行数
