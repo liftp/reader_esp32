@@ -18,6 +18,7 @@ void twice_enter_menu();
 void file_recv_op();
 void next_page_read(long pos, const char* file_name);
 void last_page_read(long pos, const char* file_name);
+void last_page_read_content_and_pos(long pos, const char* file_name);
 
 
 // 菜单相关
@@ -88,7 +89,7 @@ MenuAction m_book_list = {
     .last_menus_len = 1,
     .param_val = "",
     .display = &display_books,
-    .enter_call = &twice_enter_menu,
+    .enter_call = &enter_menu,
     .choose_call = &next_book,
     .back_call = &back_menu,
     .level = 1
@@ -143,7 +144,7 @@ MenuAction m_wifi = {
 MenuAction m_book_op = {
     .name = "阅读功能",
     .next_menus = NULL,
-    .next_menus_len = 0,
+    .next_menus_len = 2,
     .last_lev_menus = NULL,
     .last_menus_len = 4,
     .param_val = "",
@@ -162,8 +163,8 @@ MenuAction m_read = {
     .last_lev_menus = NULL,
     .last_menus_len = 1,
     .param_val = "",
-    .display = &display,
-    .enter_call = &enter_read,
+    .display = &enter_read,
+    .enter_call = &next_page,
     .choose_call = &twice_back_menu,
     .back_call = &last_page,
     .level = 3
@@ -431,6 +432,7 @@ void twice_enter_menu() {
         return;
     }
     // 切换下级菜单
+    menu_pos = 0;
     curr_m = (curr_m->next_menus)[menu_pos];
     enter_menu();
 }
@@ -472,7 +474,7 @@ void next_menu(void) {
         return ;
     }
     menu_pos = (menu_pos + 1) % curr_m->next_menus_len;
-    display();
+    curr_m -> display();
 }
 
 /**
@@ -516,6 +518,7 @@ void twice_back_menu() {
         return;
     }
     curr_m = (curr_m->last_lev_menus)[0];
+    back_menu();
 }
 /**
  * 返回上级菜单
@@ -529,7 +532,7 @@ void back_menu(void) {
     menu_pos = 0;
     // 切换菜单后，初始化滚动条
     init_menu_scroll();
-    display();
+    curr_m -> display();
 }
 
 void no_op(void) {
@@ -638,17 +641,13 @@ void file_recv_op() {
 
 // 阅读相关功能操作
 /**
-* 进入阅读页面,以及向下翻页
+* 进入阅读页面，从文件中读取阅读位置
 */
 void enter_read() {
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
     long pos = 0;
-    if (enter_1th) {
-        enter_1th = false;
-        pos = book_recorder_pos_and_write_eep(select_file->name);
-    } else {
-        pos = read_eep();
-    }
+    pos = book_recorder_pos_and_write_eep(select_file->name);
+
     next_page_read(pos, select_file->name);
 }
 
@@ -690,11 +689,25 @@ void next_page_read(long pos, const char* file_name) {
 */
 void last_page_read(long pos, const char* file_name) {
     pos = pos < page_read_size ? 0 : pos - page_read_size;
-    next_page_read(pos, file_name);
+    if (!pos) {
+        next_page_read(pos, file_name);
+    } else {
+        last_page_read_content_and_pos(pos, file_name);
+    }
+
 }
 
-void last_page_pos() {
-    
+void last_page_read_content_and_pos(long pos, const char* file_name) {
+    char *file_path = malloc_and_concat("/", file_name, NULL);
+    CharWithPos read_content = reverse_read_book_content_from_last_pos(file_path, page_read_size, pos, get_page_chars());
+    Serial.println(read_content.str);
+    Serial.println(read_content.start_pos);
+    long new_pos = text_multi_line_show(read_content.str + read_content.start_pos);
+    long old_pos = read_eep();
+    old_pos -= new_pos;
+    write_eep(old_pos);
+    free(file_path);
+    free(read_content.str);
 }
 
 /**

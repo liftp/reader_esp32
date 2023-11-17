@@ -2,7 +2,6 @@
 #define SCREEEN_H
 
 #define ENABLE_GxEPD2_GFX 0
-#include "driver/spi_master.h"
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
 // #include <Fonts/FreeMonoBold9pt7b.h>
@@ -21,8 +20,7 @@ void center_tip(const char* tip);
 
 uint16_t text_multi_line_show(const char *str);
 
-uint8_t get_page_chars();
+uint16_t get_page_chars();
 
-void test_part_show();
 
 #endif

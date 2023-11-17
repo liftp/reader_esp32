@@ -295,7 +295,7 @@ char* read_book_content_from_last_pos(const char* file_path, uint16_t read_size,
 /**
  * 从指定位置往前读取字符，先读取指定数量字符，然后从尾部计算需要的字符数，并返回对应位置
 */
-char* reverse_read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos) {
+CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos, uint16_t page_chars) {
     // 读取指定长度内容，可能文件结束只能读取最后剩余部分
     Serial.printf("open %s\n", file_path);
     File book = SD.open(file_path);
@@ -311,20 +311,36 @@ char* reverse_read_book_content_from_last_pos(const char* file_path, uint16_t re
     if (his_read_pos >= 0 && his_read_pos <= book.size()) {
         book.seek(his_read_pos);
     } else {
-        return NULL;
+        return {
+            .str = NULL
+        };
     }
 
     char *buf = (char*)malloc(sizeof(char)*(read_size + 1));
-    size_t real_read_pos = book.readBytes(buf, read_size);
-    buf[real_read_pos] = '\0';
+    size_t real_read_size = book.readBytes(buf, read_size);
+    buf[real_read_size] = '\0';
 
     
     // 需要往前计算读取的字符数
-    int i = real_read_pos;
-    // while (i > 0 && i > )
+    int i = real_read_size - 1;
+    int sub = real_read_size - page_chars;
+    // 当前位置是完整字符，往前找每个完整的字符，中文3字节，其他1字节，
+    // 直到需要的字符数被找到，此位置作为读取内容的开始
+    while (i > 3 && i > sub) {
+        if (buf[i] & 0x80) {
+            i -= 3;
+        } else {
+            i -= 1;
+        }
+    }
+
 
     book.close();
-    return buf;
+    CharWithPos result = {
+        .str = buf,
+        .start_pos = i
+    };
+    return result;
 }
 
 

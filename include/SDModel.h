@@ -15,6 +15,11 @@ typedef struct FileInfo {
     FileInfo *next;
 } FileType;
 
+struct CharWithPos {
+    char *str;
+    size_t start_pos;
+};
+
 extern FileInfo *file_list;
 
 void sd_spi_and_setup(SPIClass *spi);
@@ -26,4 +31,5 @@ void record_book_read_pos_single(const char* file_name);
 long book_recorder_read_pos_single(const char* file_name);
 long book_recorder_pos_and_write_eep(const char* file_name);
 char* read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos);
+CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos, uint16_t page_chars);
 #endif
