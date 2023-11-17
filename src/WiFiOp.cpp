@@ -1,20 +1,20 @@
-#include <Arduino.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <SDModel.h>
+#include "WiFIOp.h"
 
 
 WiFiServer server(80);
 
-const char* ssid = "******";
-const char* pwd = "******";
+const char* ssid = "reader_esp32";
+const char* pwd = "123456";
+
+char dest_ssid[20] = "";
+char dest_pwd[20] = "";
 
 String down_dir = "/localdown/";
 String remote_ip = "192.168.137.1";
 
 
 /**
- * wifi连接
+ * 连接到目标wifi
 */
 void wifi_connect() {
 
@@ -67,7 +67,7 @@ void http_file_to_sd(HTTPClient &http, String file_name) {
     uint8_t * buf = (uint8_t *) malloc(sizeof(uint8_t) * 256);
     String file_path = "/" + file_name;
     if (sd_file_exists(file_path)) {
-        Serial.printf("文件：%s 不存在", file_path);
+        Serial.printf("文件：%s 已存在", file_path);
         return;
     }
     File wr_file = sd_file_write_ready(file_path);
@@ -80,8 +80,6 @@ void http_file_to_sd(HTTPClient &http, String file_name) {
             int c = stream -> readBytes(buf, read_size);
             // 结束标记
             buf[read_size] = 0;
-            // 追加内容到sd
-            // tf.appendBinToSd(storage_path.c_str(), buf, read_size);
             // 打印写入内容
             String buf_content = String(buf, c);
             Serial.print(buf_content);
@@ -121,6 +119,7 @@ void get_file_and_call(String file_name, void (*file_call) (HTTPClient&, String)
  * 启动ap server
 */
 void wifi_ap_server() {
+    // ap 模式作为wifi接入点，其他设备可以连接到该节点上
     if (!WiFi.softAP(ssid, NULL)) {
         Serial.println("wifi ap服务器启动失败");
         return;
@@ -129,6 +128,13 @@ void wifi_ap_server() {
     Serial.printf("AP IP address: %s \n", ip.toString());
     server.begin();
     Serial.println("ap server started");
+}
+
+void wifi_server_end() {
+    server.end();
+}
+
+void set_wifi_conn_info() {
 
 }
 
@@ -136,46 +142,90 @@ void wifi_ap_server() {
 /**
  * wifi客户端监听端口示例
 */
-void wifi_listen() {
+void wifi_file_recv() {
     // WiFiServer server(80);
     // wifi_connect();
     // server.begin();
     // 监听客户端
-    WiFiClient client = server.available();
+    
 
-    if (client) {
-        Serial.println("New Client");
-        IPAddress client_ip = client.remoteIP();
-        Serial.printf("client ip: %s \n", client_ip.toString());
-        String currLine = "";
-        while (client.connected()) {
-            if (client.available()) {
+    while (true) {
+        WiFiClient client = server.available();
+        if (client) {
+            Serial.println("New Client");
+            IPAddress client_ip = client.remoteIP();
+            Serial.printf("client ip: %s \n", client_ip.toString());
+            String file_name = "";
+            int file_size = 0;
+            String file_info = "";
+
+            // 先读取文件信息
+            while (client.connected()) {
                 char c = client.read();
-                Serial.write(c);
+                if (c == ';') {
+                    break;
+                }
+                file_info += c;
+            }
+            int i = file_info.indexOf(":");
                 
-                if (c == '\n') {
+            if (i > -1) {
+                file_name = file_info.substring(0, i);
+                Serial.println(file_name);
+                // TODO数字格式校验
+                file_size = file_info.substring(i + 1).toInt();
+                Serial.println(file_size);
+            } else {
+                Serial.println("文件信息传输格式错误");
+                return;
+            }
+
+            // 准备读取文件内容
+            String file_path = "/" + file_name;
+            if (sd_file_exists(file_path)) {
+                Serial.printf("文件：%s 已存在,不会覆写", file_path);
+                return;
+            }
+
+            client.println("File received ready");
+            
+            File wr_file = sd_file_write_ready(file_path);
+            int already_read_size = 0;
+            int buf_len = 256;
+            char buf[buf_len] = {};
+            int counter = 0;
+            while (client.connected()) {
+                if (client.available()) {
                     
-                    // 结束标志
-                    if (currLine.equals("###file EOF###")) {
-                        Serial.println("读取结束");
-                        break;
-                    } else {
-                        currLine += c;
-                        // TODO 读整行
-                        // 并清空内容
-                        currLine = "";
+                    char c = client.read();
+                    // Serial.write(c);
+                    buf[counter ++] = c;
+                    already_read_size ++;
+                    if (counter == buf_len - 2) {
+                        buf[counter] = '\0';
+                        wr_file.print(buf);
+                        counter = 0;
                     }
-                } else if (c != '\n') {
-                    currLine += c;
+
+                    if (already_read_size == file_size) {
+                        if (counter != 0) {
+                            buf[counter] = '\0';
+                            wr_file.print(buf);
+                        }
+                        break;
+                    }
+                    
                 }
             }
+            wr_file.close();
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.stop();
+            Serial.println("Client Disconnected.");
+            break;
         }
-        client.println("HTTP/1.1 200 OK");
-        client.println("Content-type:text/html");
-        client.stop();
-        Serial.println("Client Disconnected.");
+        delay(2000);
+        Serial.println(".");
     }
-
-    delay(2000);
 }
 

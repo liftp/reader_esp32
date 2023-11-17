@@ -1,12 +1,14 @@
 #include "SDModel.h"
-#include "ReaderPosRecord.h"
+
 
 #define SCK 18
 #define MISO 19
 #define MOSI 23
 #define SS 5    /**cs片选信号接4引脚*/
 
-const char record_path[] = "/record/log.txt";
+
+const char record_file[] = "/record/log.txt";
+const char record_path[] = "/record";
 
 // SPIClass spi = SPIClass(VSPI);
 
@@ -51,7 +53,7 @@ void sd_spi_and_setup(SPIClass *spi) {
     spi -> begin(SCK, MISO, MOSI, SS);
     
     if (!SD.begin(SS, *spi)) {
-        // Serial.println("sd init failed");
+        Serial.println("sd init failed");
         return;
     }
  
@@ -88,7 +90,7 @@ char* str_melloc_cp(const char* trg) {
  * 读取目录下所有文件名称，存到全局变量
 */
 void sd_files_dir(String dir) {
-    File read = SD.open(dir, FILE_READ);
+    File read = SD.open(dir);
     File next_file = read.openNextFile(FILE_READ);
     FileInfo *last_file = NULL;
     FileInfo *head = NULL;
@@ -141,7 +143,7 @@ void freeFilesInfo() {
  * sd从文件指定位置开始读
 */
 String sd_read_file_in_pos(String file_path) {
-    File file = SD.open(file_path, FILE_READ);
+    File file = SD.open(file_path);
     file.seek(file_pos);
     int size = file.read(buf, 100);
     file.close();
@@ -154,11 +156,11 @@ String sd_read_file_in_pos(String file_path) {
 long book_recorder_read_pos(const char* filePath) {
     char end_flag = ';';
     char seperator = ':';
-    if (SD.exists(record_path)) {
-        File rec_file = SD.open(record_path, FILE_WRITE);
+    if (SD.exists(record_file)) {
+        File rec_file = SD.open(record_file, FILE_WRITE);
         rec_file.close();
     }
-    File file = SD.open(record_path, FILE_READ);
+    File file = SD.open(record_file, FILE_READ);
     bool find = false;
     bool is_find = false;
     String line = file.readStringUntil(end_flag);
@@ -196,7 +198,7 @@ void record_book_read_pos(const char* file_path, long his_read_pos) {
     char end_flag = ';';
     // 追加写入该文件阅读进度为0位置
     if (his_read_pos == -1) {
-        File file = SD.open(record_path, FILE_APPEND);
+        File file = SD.open(record_file, FILE_APPEND);
         String writeStr = file_path;
         writeStr.concat(":");
         writeStr.concat(his_read_pos);
@@ -205,7 +207,7 @@ void record_book_read_pos(const char* file_path, long his_read_pos) {
         file.close();
     } else {
         // 整体读取，然后替换文件阅读进度,全文件覆写
-        File file = SD.open(record_path, FILE_WRITE);
+        File file = SD.open(record_file, FILE_WRITE);
         String content = file.readString();
         int head_pos = content.indexOf(file_path);
         // 0 -> 匹配位置
@@ -226,17 +228,103 @@ void record_book_read_pos(const char* file_path, long his_read_pos) {
 }
 
 /**
- * 读取书籍的阅读记录位置，以及读出指定大小字符, TODO free
+ * 从eep读取位置写入文件
 */
-String read_book_content_from_last_pos(const char* filePath, uint16_t read_size, long his_read_pos) {
+void record_book_read_pos_single(const char* file_name) {
+    long pos = read_eep();
+    char *rec_file = malloc_and_concat(record_path, "/", file_name);
+    File f = SD.open(rec_file, FILE_WRITE);
+    f.println(pos);
+    f.close();
+    free(rec_file);
+}
+
+void create_record_dir_if_not_exists() {
+    if (!SD.exists(record_path)) {
+        SD.mkdir(record_path);
+    }
+}
+/**
+ * 单文件读取阅读位置
+*/
+long book_recorder_read_pos_single(const char* file_name) {
+    create_record_dir_if_not_exists();
+    char *rec_file = malloc_and_concat(record_path, "/", file_name);
+    if (!SD.exists(rec_file)) {
+        File f = SD.open(rec_file, FILE_WRITE);
+        f.println(0);
+        f.close();
+        return 0;
+    }
+    File f = SD.open(rec_file);
+    String str = f.readString();
+    str.trim();
+    free(rec_file);
+    f.close();
+    return str.toInt();
+}
+
+/**
+ * 读取位置并覆写eep
+*/
+long book_recorder_pos_and_write_eep(const char* file_name) {
+    
+    long pos =  book_recorder_read_pos_single(file_name);
+    Serial.printf("file pos:%d\n", pos);
+    write_eep(pos);
+    return pos;
+}
+
+
+
+/**
+ * 读取书籍的阅读记录位置，以及读出指定大小字符, 需要释放返回结果 free
+*/
+char* read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos) {
     // 读取指定长度内容，可能文件结束只能读取最后剩余部分
-    File book = SD.open(filePath, FILE_READ);
+    Serial.printf("open %s\n", file_path);
+    File book = SD.open(file_path);
+    
     book.seek(his_read_pos);
-    uint8_t *buf = (uint8_t*)malloc(sizeof(uint8_t)*(read_size + 1));
-    size_t real_read_pos = book.read(buf, read_size);
+    char *buf = (char*)malloc(sizeof(char)*(read_size + 1));
+    size_t real_read_pos = book.readBytes(buf, read_size);
     buf[real_read_pos] = '\0';
     book.close();
-    return String(buf, real_read_pos+1);
+    return buf;
+}
+/**
+ * 从指定位置往前读取字符，先读取指定数量字符，然后从尾部计算需要的字符数，并返回对应位置
+*/
+char* reverse_read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos) {
+    // 读取指定长度内容，可能文件结束只能读取最后剩余部分
+    Serial.printf("open %s\n", file_path);
+    File book = SD.open(file_path);
+    // 需要记录下末尾位置
+    long old_pos = his_read_pos;
+    // 向前推字符数
+    if (his_read_pos > read_size) {
+        his_read_pos -= read_size;
+    } else {
+        his_read_pos = 0;
+    }
+    // 超出位置不进行读取
+    if (his_read_pos >= 0 && his_read_pos <= book.size()) {
+        book.seek(his_read_pos);
+    } else {
+        return NULL;
+    }
+
+    char *buf = (char*)malloc(sizeof(char)*(read_size + 1));
+    size_t real_read_pos = book.readBytes(buf, read_size);
+    buf[real_read_pos] = '\0';
+
+    
+    // 需要往前计算读取的字符数
+    int i = real_read_pos;
+    // while (i > 0 && i > )
+
+    book.close();
+    return buf;
 }
 
 

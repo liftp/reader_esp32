@@ -17,4 +17,12 @@ void line_pos_show_menu(const char **str, int line_size, int show_line);
 
 void init_screen(SPIClass &spi);
 
+void center_tip(const char* tip);
+
+uint16_t text_multi_line_show(const char *str);
+
+uint8_t get_page_chars();
+
+void test_part_show();
+
 #endif

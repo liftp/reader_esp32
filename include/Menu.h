@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <SD.h>
 #include "Common.h"
+#include "SDModel.h"
 
 #define LEFT_ACTION 1
 #define MID_ACTION 2
@@ -56,7 +57,7 @@ typedef struct MenuAction {
     // 右键
     void (*enter_call) ();
     // 中键
-    ChooseContent (*choose_call) ();
+    void (*choose_call) ();
     // 左键
     void (*back_call) ();
     int level;
@@ -96,4 +97,8 @@ void menu();
 void init_menu();
 void doAction(int action);
 void display_books();
+void enter_read();
+void next_page();
+void last_page();
+void exit_read();
 #endif

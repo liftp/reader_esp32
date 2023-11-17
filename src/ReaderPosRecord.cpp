@@ -5,7 +5,7 @@
 
 void write_eep(int32_t val) {
     EEPROM.begin(1024);
-    EEPROM.write(0, 1);
+    // EEPROM.write(0, 1);
     EEPROM.writeLong(0, val);
     EEPROM.commit();
 }

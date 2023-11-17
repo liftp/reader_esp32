@@ -1,17 +1,23 @@
 #include "Menu.h"
 #include "SDModel.h"
 #include "Screen.h"
+#include "WiFiOp.h"
 
 void display();
 void enter_menu(void);
-ChooseContent next_menu(void);
-ChooseContent next_book(void);
+void next_menu(void);
+void next_book(void);
 void no_op(void);
 void no_op_str(String param);
 void back_menu(void);
 void enter_book(void);
 void display_book_op_menu();
 void init_menu_scroll();
+void twice_back_menu();
+void twice_enter_menu();
+void file_recv_op();
+void next_page_read(long pos, const char* file_name);
+void last_page_read(long pos, const char* file_name);
 
 
 // 菜单相关
@@ -19,6 +25,13 @@ MenuAction *home;
 MenuAction *curr_m;
 int menu_pos = 0;
 String param = "Home";
+
+// 功能使用中，操作阻止重复调用标记
+bool use_flag = false;
+// 每页读取字节数，不是实际显示的数量
+int page_read_size = 150 * 3;
+// 是否从菜单进入阅读页面，是：需要从文件读取阅读位置，否：从eep读取位置
+bool enter_1th = true;
 
 // 显示相关
 // 最大菜单数，TODO暂时直接定义，后面可以修改为根据屏幕高度自适应
@@ -66,7 +79,7 @@ MenuAction m_home = {
 // home next
 
 // 书籍菜单默认display_call: 显示书籍列表，默认不会展示下级菜单；
-// enter_call：进入下级菜单，back_call:返回上级Home菜单
+// enter_call：进入下下级菜单，back_call:返回上级Home菜单
 MenuAction m_book_list = {
     "书籍",
     .next_menus = NULL,
@@ -75,7 +88,7 @@ MenuAction m_book_list = {
     .last_menus_len = 1,
     .param_val = "",
     .display = &display_books,
-    .enter_call = &enter_menu,
+    .enter_call = &twice_enter_menu,
     .choose_call = &next_book,
     .back_call = &back_menu,
     .level = 1
@@ -89,7 +102,7 @@ MenuAction m_rev_file = {
     .last_menus_len = 1,
     .param_val = "",
     .display = &display,
-    .enter_call = &enter_menu,
+    .enter_call = &file_recv_op,
     .choose_call = NULL,
     .back_call = &back_menu,
     .level = 1
@@ -125,7 +138,7 @@ MenuAction m_wifi = {
 
 // book next
 
-// 这个菜单是为了将月度和删除推迟显示，‘book’菜单的choose_call是
+// 这个菜单是为了将阅读和删除推迟显示，‘book’菜单的choose_call是
 // 当‘book’菜单下选择书籍进入菜单，会进入该菜单，然后才局部展示月度和删除功能
 MenuAction m_book_op = {
     .name = "阅读功能",
@@ -150,9 +163,9 @@ MenuAction m_read = {
     .last_menus_len = 1,
     .param_val = "",
     .display = &display,
-    .enter_call = &enter_menu,
-    .choose_call = NULL,
-    .back_call = &back_menu,
+    .enter_call = &enter_read,
+    .choose_call = &twice_back_menu,
+    .back_call = &last_page,
     .level = 3
 };
 
@@ -166,7 +179,7 @@ MenuAction m_del = {
     .display = &display,
     .enter_call = &enter_menu,
     .choose_call = NULL,
-    .back_call = &back_menu,
+    .back_call = &twice_back_menu,
     .level = 3
 };
 
@@ -263,20 +276,6 @@ void partial_show_op() {
     line_pos_show_menu(str_show, i, scroll_menu.curr_pos);
 
     if (new_line != NULL) free(new_line);
-}
-
-void choose_book_op() {
-    // 书籍信息在scroll中相关，用位置在FileInfo链表中查询
-    // 切换下级菜单
-    curr_m = (curr_m->next_menus)[menu_pos];
-    // 光标切换到下级菜单0位置
-    menu_pos = 0;
-
-    // 初始化scroll
-
-    // 操作局部展示
-    
-
 }
 
 /**
@@ -394,7 +393,6 @@ void display() {
     if (!curr_m->display || !curr_m->next_menus) {
         return;
     }
-    Serial.println("dis");
     int len = scroll_menu.all_len < scroll_menu.max_line_num ? scroll_menu.all_len : scroll_menu.max_line_num;
     const char *show_arr[scroll_menu.max_line_num] = {};
     char *curr_str = menu_content_collect(show_arr, len);
@@ -425,6 +423,21 @@ void display_book_op_menu() {
     free(curr_str);
 }
 
+/**
+ * 进入两级菜单
+*/
+void twice_enter_menu() {
+    if (!curr_m->next_menus) {
+        return;
+    }
+    // 切换下级菜单
+    curr_m = (curr_m->next_menus)[menu_pos];
+    enter_menu();
+}
+
+/**
+ * 进入下级菜单
+*/
 void enter_menu(void) {
     if (!curr_m->next_menus) {
         return;
@@ -454,30 +467,19 @@ void enter_book(void) {
     // TODO 显示sd根目录书籍目录
 }
 
-ChooseContent next_menu(void) {
+void next_menu(void) {
     if (!curr_m -> next_menus) {
-        return {"", "", 0, true};
+        return ;
     }
     menu_pos = (menu_pos + 1) % curr_m->next_menus_len;
     display();
-    return {
-        .name = curr_m->name,
-        .attach = "",
-        .pos = menu_pos,
-        .is_menu = true
-    };
 }
 
 /**
  * 下移书籍选择
 */
-ChooseContent next_book(void) {
-    ChooseContent choose = {
-        .name = curr_m->name,
-        .attach = "",
-        .pos = menu_pos,
-        .is_menu = false
-    };
+void next_book(void) {
+
     // 书籍向下选择
     FileInfo *curr_file = (FileInfo*)scroll.curr_ptr;
     
@@ -503,9 +505,18 @@ ChooseContent next_book(void) {
         scroll.lowest = lowest_tmp;
     }
     display_books();
-    return choose;
 }
 
+
+/**
+ * 返回两级菜单
+*/
+void twice_back_menu() {
+    if (!curr_m->last_lev_menus) {
+        return;
+    }
+    curr_m = (curr_m->last_lev_menus)[0];
+}
 /**
  * 返回上级菜单
 */
@@ -573,23 +584,124 @@ void menu() {
 }
 
 void doAction(int action) {
-        Serial.println(action);
-    // 中断左、中、右
+        // 功能正在被使用，禁止进行其他操作
+        if (use_flag) {
+            return;
+        }
+        // 中断左、中、右
         if (action == MID_ACTION) {
+            Serial.println("x");
             // 下一个菜单
             if (curr_m->choose_call) {
                 // 菜单目标
                 curr_m->choose_call();
             }
         } else if (action == LEFT_ACTION) {
+            Serial.println("<");
             if (curr_m->back_call) {
                 curr_m -> back_call();
             }
             
         } else if (action == RIGHT_ACTION) {
+            Serial.println(">");
             if (curr_m->enter_call) {
                 curr_m -> enter_call();
             }
+
         }
 }
 
+
+
+void file_recv_op() {
+    if (use_flag) {
+        return;
+    }
+    use_flag = true;
+    
+    // 显示打印
+    center_tip("wifi等待文件接收中");
+    // ap模式启动
+    wifi_ap_server();
+    // 监听下载文件
+    wifi_file_recv();
+    // 关闭wifi
+    wifi_server_end();
+    // 提醒操作结束，返回菜单
+    center_tip("wifi接收文件完成，即将返回菜单");
+    delay(1500);
+    use_flag = false;
+    // 刷新菜单显示
+    curr_m->display();
+
+}
+
+// 阅读相关功能操作
+/**
+* 进入阅读页面,以及向下翻页
+*/
+void enter_read() {
+    FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
+    long pos = 0;
+    if (enter_1th) {
+        enter_1th = false;
+        pos = book_recorder_pos_and_write_eep(select_file->name);
+    } else {
+        pos = read_eep();
+    }
+    next_page_read(pos, select_file->name);
+}
+
+/**
+ * 下一页回调
+*/
+void next_page() {
+    FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
+    long pos = read_eep();
+    next_page_read(pos, select_file->name);
+}
+
+/**
+ * 上一页回调
+*/
+void last_page() {
+    FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
+    long pos = read_eep();
+    last_page_read(pos, select_file->name);
+}
+
+/**
+ * 下一页
+*/
+void next_page_read(long pos, const char* file_name) {
+    Serial.printf("pos:%d\n", pos);
+    char *file_path = malloc_and_concat("/", file_name, NULL);
+    char *read_content = read_book_content_from_last_pos(file_path, page_read_size, pos);
+    long new_pos = text_multi_line_show(read_content);
+    long old_pos = read_eep();
+    old_pos += new_pos;
+    write_eep(old_pos);
+    free(file_path);
+    free(read_content);
+}
+
+/**
+ * 上一页
+*/
+void last_page_read(long pos, const char* file_name) {
+    pos = pos < page_read_size ? 0 : pos - page_read_size;
+    next_page_read(pos, file_name);
+}
+
+void last_page_pos() {
+    
+}
+
+/**
+* 退出阅读
+*/
+void exit_read() {
+    // 记录阅读位置到文件中
+    FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
+    record_book_read_pos_single(select_file->name);
+}

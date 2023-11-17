@@ -7,6 +7,7 @@
 #include <SD.h>
 #include "Common.h"
 #include "driver/spi_master.h"
+#include "ReaderPosRecord.h"
 
 typedef struct FileInfo {
     const char *name;
@@ -21,4 +22,8 @@ File sd_file_write_ready(String);
 bool sd_file_exists(String);
 void sd_files_dir(String);
 void freeFilesInfo();
+void record_book_read_pos_single(const char* file_name);
+long book_recorder_read_pos_single(const char* file_name);
+long book_recorder_pos_and_write_eep(const char* file_name);
+char* read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos);
 #endif

@@ -8,13 +8,16 @@
 #define S_MISO 19
 #define BUSY 15
 #define RST 2
-#define S_SS 5
+#define S_SS 4
+
+#define ENABLE_GxEPD2_GFX 0
 
 #define MAX_LINE_CN 17
 
 // ESP32 SS=5,SCL(SCK)=18,SDA(MOSI)=23,BUSY=15,RST=2,DC=27
 
 char* get_line_content(const char *str, uint16_t start_pos);
+void refresh_screen();
 
 
 #define USE_HSPI_FOR_EPD
@@ -31,6 +34,30 @@ U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 uint8_t cn_char_len = 0;
 uint8_t en_char_len = 0;
 uint16_t screen_w = 0;
+
+/**
+ * 获取大约一行显示的字符数
+*/
+uint8_t get_page_chars() {
+  uint8_t line_gap = 2;
+  int rows = ((display.width() / cn_char_len) - 2) * 3;
+  int lines = (display.height() / (cn_char_len + line_gap)) - 1;
+
+  return rows * lines;
+}
+
+void center_tip(const char* tip) {
+  // display.setPartialWindow(0, 0, display.width(), display.height());
+  display.setFullWindow();
+  display.firstPage();
+
+  
+  u8g2Fonts.setCursor(20, display.height()/2);
+  u8g2Fonts.println(tip);
+
+  // 刷新屏幕
+  refresh_screen();
+}
 
 void refresh_screen() {
   do {
@@ -82,6 +109,20 @@ void line_pos_show_menu(const char **str, int line_size, int show_line) {
   refresh_screen();
 }
 
+void test_part_show() {
+  display.setTextColor(GxEPD_BLACK);
+  display.setPartialWindow(0, 70, 100, 30);
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    u8g2Fonts.setCursor(0, 60);
+    // display.setCursor(0,60);
+    u8g2Fonts.print("测试局部显示");
+    // display.drawFastHLine(0, 70, 100, GxEPD_BLACK);
+  
+  } while (display.nextPage());
+}
+
 /**
  * 菜单显示
  * @param str 多行数据数组指针
@@ -89,6 +130,7 @@ void line_pos_show_menu(const char **str, int line_size, int show_line) {
 */
 void multi_line_menu_show(const char **str, int line_num) {
   display.setFullWindow();
+  // display.setPartialWindow(0, 0, display.width(), display.height());
   display.firstPage();
   uint16_t left_x = 15;
   uint16_t init_height = 15;
@@ -97,6 +139,7 @@ void multi_line_menu_show(const char **str, int line_num) {
 
   int i = 0;
   while (i < line_num) {
+    display.setCursor(left_x, init_height);
     u8g2Fonts.setCursor(left_x, init_height);
     init_height += cn_char_len + h_gap;
     u8g2Fonts.println(str[i++]);
@@ -126,7 +169,7 @@ uint16_t text_multi_line_show(const char *str) {
   // 获取到全部内容或者显示高度超出屏幕退出
   while (get_pos < str_len - 1 && init_height <= display.height()) {
     char *line = get_line_content(str, get_pos);
-    u8g2Fonts.setCursor(0, init_height);
+    u8g2Fonts.setCursor(10, init_height);
     u8g2Fonts.println(line);
     init_height += cn_char_len + line_gap;
     get_pos += strlen(line);
@@ -165,7 +208,12 @@ char* get_line_content(const char *str, uint16_t start_pos) {
   char *result = (char*)malloc(sizeof(char)*(result_len+1));
   uint8_t j = 0;
   for (; j < result_len; j++) {
-    result[j] = str[start_pos+j];
+    // \r\n换行回车符转为空格，因为u8g2会自动换行，不可控高度
+    if (str[start_pos+j] == '\n' || str[start_pos+j] == '\r') {
+      result[j] = ' ';
+    } else {
+      result[j] = str[start_pos+j];
+    }
   }
   result[j] = '\0';
   // 回调显示，释放内存

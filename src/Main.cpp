@@ -8,6 +8,7 @@
 SPIClass spi = SPIClass(VSPI);
 
 void setup() {
+    Serial.begin(115200);
     // 初始化spi和sd卡对应的书籍列表
     sd_spi_and_setup(&spi);
     // 初始化屏幕相关模块
@@ -16,11 +17,11 @@ void setup() {
     init_menu();
     // 初始化中断
     init_interr();
+    // test_part_show();
+    
 }
 
-void loop() {
-
-
+void action() {
     // 中断控制菜单
     int key_flag = 0;
     if (key_flag = get_key()) {
@@ -28,6 +29,9 @@ void loop() {
         reset_key();
     }
     delay(500);
+}
 
+void loop() {
+    action();
 
 }
