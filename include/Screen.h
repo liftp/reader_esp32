@@ -18,7 +18,7 @@ void init_screen(SPIClass &spi);
 
 void center_tip(const char* tip);
 
-uint16_t text_multi_line_show(const char *str);
+uint16_t text_multi_line_show(const char *str, bool contains_end);
 
 uint16_t get_page_chars();
 

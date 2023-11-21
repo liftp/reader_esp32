@@ -17,7 +17,7 @@ typedef struct FileInfo {
 
 struct CharWithPos {
     char *str;
-    size_t start_pos;
+    int start_pos;
 };
 
 extern FileInfo *file_list;

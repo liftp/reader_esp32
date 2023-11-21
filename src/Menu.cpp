@@ -656,7 +656,7 @@ void enter_read() {
 */
 void next_page() {
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
-    long pos = read_eep();
+    long pos = read_eep_next();
     next_page_read(pos, select_file->name);
 }
 
@@ -665,7 +665,7 @@ void next_page() {
 */
 void last_page() {
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
-    long pos = read_eep();
+    long pos = read_eep_curr();
     last_page_read(pos, select_file->name);
 }
 
@@ -676,10 +676,11 @@ void next_page_read(long pos, const char* file_name) {
     Serial.printf("pos:%d\n", pos);
     char *file_path = malloc_and_concat("/", file_name, NULL);
     char *read_content = read_book_content_from_last_pos(file_path, page_read_size, pos);
-    long new_pos = text_multi_line_show(read_content);
-    long old_pos = read_eep();
+    long new_pos = text_multi_line_show(read_content, false);
+    long old_pos = read_eep_next();
+    write_eep_curr(old_pos);
     old_pos += new_pos;
-    write_eep(old_pos);
+    write_eep_next(old_pos);
     free(file_path);
     free(read_content);
 }
@@ -688,7 +689,7 @@ void next_page_read(long pos, const char* file_name) {
  * 上一页
 */
 void last_page_read(long pos, const char* file_name) {
-    pos = pos < page_read_size ? 0 : pos - page_read_size;
+    pos = pos < get_page_chars() ? 0 : pos;
     if (!pos) {
         next_page_read(pos, file_name);
     } else {
@@ -699,13 +700,14 @@ void last_page_read(long pos, const char* file_name) {
 
 void last_page_read_content_and_pos(long pos, const char* file_name) {
     char *file_path = malloc_and_concat("/", file_name, NULL);
-    CharWithPos read_content = reverse_read_book_content_from_last_pos(file_path, page_read_size, pos, get_page_chars());
-    Serial.println(read_content.str);
+    CharWithPos read_content = reverse_read_book_content_from_last_pos(file_path, get_page_chars(), pos, get_page_chars());
+    Serial.println(read_content.str + read_content.start_pos);
     Serial.println(read_content.start_pos);
-    long new_pos = text_multi_line_show(read_content.str + read_content.start_pos);
-    long old_pos = read_eep();
+    long new_pos = text_multi_line_show(read_content.str + read_content.start_pos, true);
+    long old_pos = read_eep_curr();
+    write_eep_next(old_pos);
     old_pos -= new_pos;
-    write_eep(old_pos);
+    write_eep_curr(old_pos);
     free(file_path);
     free(read_content.str);
 }

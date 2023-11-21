@@ -271,7 +271,8 @@ long book_recorder_pos_and_write_eep(const char* file_name) {
     
     long pos =  book_recorder_read_pos_single(file_name);
     Serial.printf("file pos:%d\n", pos);
-    write_eep(pos);
+    write_eep_next(pos);
+    write_eep_curr(pos);
     return pos;
 }
 
@@ -323,10 +324,11 @@ CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint1
     
     // 需要往前计算读取的字符数
     int i = real_read_size - 1;
-    int sub = real_read_size - page_chars;
+    // -15是为了读取较少的字符保证屏幕可以显示
+    int sub = real_read_size - page_chars + 15;
     // 当前位置是完整字符，往前找每个完整的字符，中文3字节，其他1字节，
-    // 直到需要的字符数被找到，此位置作为读取内容的开始
-    while (i > 3 && i > sub) {
+    // 直到需要的字符数被找到，此位置作为读取内容的开始，位置需要加1
+    while (i >= 3 && i > sub) {
         if (buf[i] & 0x80) {
             i -= 3;
         } else {
@@ -338,7 +340,7 @@ CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint1
     book.close();
     CharWithPos result = {
         .str = buf,
-        .start_pos = i
+        .start_pos = i + 1
     };
     return result;
 }

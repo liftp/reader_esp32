@@ -17,7 +17,9 @@ void setup() {
     init_menu();
     // 初始化中断
     init_interr();
-    // test_part_show();
+    // 初始化eep
+    init_eep();
+
     
 }
 

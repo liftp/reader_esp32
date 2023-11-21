@@ -19,6 +19,7 @@
 // ESP32 SS=5,SCL(SCK)=18,SDA(MOSI)=23,BUSY=15,RST=2,DC=27
 
 char* get_line_content(const char *str, uint16_t start_pos);
+char* get_line_content_contains_end(const char *str, uint16_t start_pos);
 void refresh_screen();
 void screen_draw_white();
 
@@ -170,7 +171,7 @@ void multi_line_menu_show(const char **str, int line_num) {
 /**
  * 文本内容多行展示到屏幕
 */
-uint16_t text_multi_line_show(const char *str) {
+uint16_t text_multi_line_show(const char *str, bool contains_end) {
   
   screen_w = display.width();
   uint16_t str_len = strlen(str);
@@ -189,7 +190,12 @@ uint16_t text_multi_line_show(const char *str) {
 
   // 获取到全部内容或者显示高度超出屏幕退出
   while (get_pos < str_len - 1 && init_height <= display.height()) {
-    char *line = get_line_content(str, get_pos);
+    char *line;
+    if (contains_end) {
+      line = get_line_content_contains_end(str, get_pos);
+    } else {
+      line = get_line_content(str, get_pos);
+    }
     if (!line) break;
     u8g2Fonts.setCursor(10, init_height);
     u8g2Fonts.println(line);
@@ -218,6 +224,47 @@ char* get_line_content(const char *str, uint16_t start_pos) {
   uint16_t all_len = 2;
   uint16_t i = start_pos;
   while (i < str_len - 3 && all_len <= (screen_w - cn_char_len)) {
+    // 中文字符
+    if (str[i] & 0x80) {
+      i += 3;
+      all_len += cn_char_len;
+    } else {
+      i += 1;
+      all_len += en_char_len;
+    }
+  }
+
+  uint8_t result_len = i - start_pos;
+  if (result_len <= 0) {
+    return NULL;
+  }
+  char *result = (char*)malloc(sizeof(char)*(result_len+1));
+  uint8_t j = 0;
+  for (; j < result_len; j++) {
+    // \r\n换行回车符转为空格，因为u8g2会自动换行，不可控高度
+    if (str[start_pos+j] == '\n' || str[start_pos+j] == '\r') {
+      result[j] = ' ';
+    } else {
+      result[j] = str[start_pos+j];
+    }
+  }
+  result[j] = '\0';
+  // 回调显示，释放内存
+  // call_back(result, 0, 0);
+  // free(result);
+  return result;
+}
+
+/**
+ * 读取到字符串结尾，包含结尾字符，向上翻页使用，因为向上翻页，尾部一定完成字符
+*/
+char* get_line_content_contains_end(const char *str, uint16_t start_pos) {
+  uint16_t str_len = strlen(str);
+  uint8_t line_ch_len  = screen_w / en_char_len;
+  // 字符串占总屏幕宽度,默认两边间距2
+  uint16_t all_len = 2;
+  uint16_t i = start_pos;
+  while (i < str_len && all_len <= (screen_w - cn_char_len)) {
     // 中文字符
     if (str[i] & 0x80) {
       i += 3;
