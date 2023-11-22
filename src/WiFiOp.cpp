@@ -141,15 +141,19 @@ void set_wifi_conn_info() {
 
 /**
  * wifi客户端监听端口示例
+ * @return true:接收成功，false:程序中断
 */
-void wifi_file_recv() {
+bool wifi_file_recv() {
     // WiFiServer server(80);
     // wifi_connect();
     // server.begin();
     // 监听客户端
+    // 初始保证进入循环，get_key()的值会冗余，不一定是当前最新按钮状态
+    bool init = true;
     
-
-    while (true) {
+    // 有可能中断，退出程序
+    while (init || get_key() != LEFT_ACTION) {
+        init = false;
         WiFiClient client = server.available();
         if (client) {
             Serial.println("New Client");
@@ -177,14 +181,14 @@ void wifi_file_recv() {
                 Serial.println(file_size);
             } else {
                 Serial.println("文件信息传输格式错误");
-                return;
+                return false;
             }
 
             // 准备读取文件内容
             String file_path = "/" + file_name;
             if (sd_file_exists(file_path)) {
                 Serial.printf("文件：%s 已存在,不会覆写", file_path);
-                return;
+                return false;
             }
 
             client.println("File received ready");
@@ -227,5 +231,11 @@ void wifi_file_recv() {
         delay(2000);
         Serial.println(".");
     }
+
+    // 程序中断
+    if (get_key() == LEFT_ACTION) {
+        return false;
+    }
+    return true;
 }
 

@@ -6,10 +6,6 @@
 #include "Common.h"
 #include "SDModel.h"
 
-#define LEFT_ACTION 1
-#define MID_ACTION 2
-#define RIGHT_ACTION 3
-
 typedef struct ChooseType {
     // 选择内容
     String name;

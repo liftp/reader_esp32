@@ -326,6 +326,7 @@ void display_partial_init() {
 
 void init_screen(SPIClass &hspi) {
   // hspi.begin(S_SCK, S_MISO, S_MOSI, S_SS);
+  Serial.printf("width:%d---height:%d\n", display.width(), display.height());
   display.epd2.selectSPI(hspi, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   display.init(115200,true,50,false);
   display.setRotation(1);

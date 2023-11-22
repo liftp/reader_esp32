@@ -19,6 +19,7 @@ void file_recv_op();
 void next_page_read(long pos, const char* file_name);
 void last_page_read(long pos, const char* file_name);
 void last_page_read_content_and_pos(long pos, const char* file_name);
+void rec_file_exit();
 
 
 // 菜单相关
@@ -27,8 +28,6 @@ MenuAction *curr_m;
 int menu_pos = 0;
 String param = "Home";
 
-// 功能使用中，操作阻止重复调用标记
-bool use_flag = false;
 // 每页读取字节数，不是实际显示的数量
 int page_read_size = 150 * 3;
 // 是否从菜单进入阅读页面，是：需要从文件读取阅读位置，否：从eep读取位置
@@ -102,15 +101,15 @@ MenuAction m_rev_file = {
     .last_lev_menus = NULL,
     .last_menus_len = 1,
     .param_val = "",
-    .display = &display,
-    .enter_call = &file_recv_op,
+    .display = &file_recv_op,
+    .enter_call = NULL,
     .choose_call = NULL,
     .back_call = &back_menu,
     .level = 1
 };
 
 MenuAction m_ip = {
-    "ip",
+    "壁纸显示",
     .next_menus = NULL,
     .next_menus_len = 0,
     .last_lev_menus = NULL,
@@ -140,7 +139,7 @@ MenuAction m_wifi = {
 // book next
 
 // 这个菜单是为了将阅读和删除推迟显示，‘book’菜单的choose_call是
-// 当‘book’菜单下选择书籍进入菜单，会进入该菜单，然后才局部展示月度和删除功能
+// 当‘book’菜单下选择书籍进入菜单，会进入该菜单，然后才局部展示阅读和删除功能
 MenuAction m_book_op = {
     .name = "阅读功能",
     .next_menus = NULL,
@@ -587,10 +586,6 @@ void menu() {
 }
 
 void doAction(int action) {
-        // 功能正在被使用，禁止进行其他操作
-        if (use_flag) {
-            return;
-        }
         // 中断左、中、右
         if (action == MID_ACTION) {
             Serial.println("x");
@@ -617,26 +612,35 @@ void doAction(int action) {
 
 
 void file_recv_op() {
-    if (use_flag) {
-        return;
-    }
-    use_flag = true;
     
     // 显示打印
     center_tip("wifi等待文件接收中");
     // ap模式启动
     wifi_ap_server();
     // 监听下载文件
-    wifi_file_recv();
+    bool success_rec = wifi_file_recv();
     // 关闭wifi
     wifi_server_end();
     // 提醒操作结束，返回菜单
-    center_tip("wifi接收文件完成，即将返回菜单");
+    const char *tip;
+    if (success_rec) {
+        tip = "wifi接收文件完成，即将返回菜单";
+    } else {
+        tip = "程序中断，即将返回菜单";
+    }
+    center_tip(tip);
     delay(1500);
-    use_flag = false;
-    // 刷新菜单显示
-    curr_m->display();
+    // 退出当前菜单
+    curr_m -> back_call();
 
+}
+
+/**
+ * 从接收文件功能中退出
+*/
+void rec_file_exit() {
+    // 返回菜单
+    back_menu();
 }
 
 // 阅读相关功能操作
@@ -697,12 +701,12 @@ void last_page_read(long pos, const char* file_name) {
     }
 
 }
-
+/**
+ * 从指定位置往前读取一页内容
+*/
 void last_page_read_content_and_pos(long pos, const char* file_name) {
     char *file_path = malloc_and_concat("/", file_name, NULL);
     CharWithPos read_content = reverse_read_book_content_from_last_pos(file_path, get_page_chars(), pos, get_page_chars());
-    Serial.println(read_content.str + read_content.start_pos);
-    Serial.println(read_content.start_pos);
     long new_pos = text_multi_line_show(read_content.str + read_content.start_pos, true);
     long old_pos = read_eep_curr();
     write_eep_next(old_pos);

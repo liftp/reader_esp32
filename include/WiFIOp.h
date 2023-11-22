@@ -6,9 +6,11 @@
 #include <HTTPClient.h>
 #include <SDModel.h>
 #include <WiFiMulti.h>
+#include "ButtonInterrupt.h"
+#include "Common.h"
 
 void wifi_connect();
 void wifi_ap_server();
 void wifi_server_end();
-void wifi_file_recv();
+bool wifi_file_recv();
 #endif
