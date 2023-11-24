@@ -4,6 +4,8 @@
 #define ENABLE_GxEPD2_GFX 0
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
+
+#include "bg.c"
 // #include <Fonts/FreeMonoBold9pt7b.h>
 
 // #include <U8g2lib.h>
@@ -21,6 +23,8 @@ void center_tip(const char* tip);
 uint16_t text_multi_line_show(const char *str, bool contains_end);
 
 uint16_t get_page_chars();
+
+void display_custome_image();
 
 
 #endif

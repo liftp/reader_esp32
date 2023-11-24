@@ -20,6 +20,8 @@ void next_page_read(long pos, const char* file_name);
 void last_page_read(long pos, const char* file_name);
 void last_page_read_content_and_pos(long pos, const char* file_name);
 void rec_file_exit();
+void del_op_back_menu();
+void del_book_reset_filelist();
 
 
 // 菜单相关
@@ -64,7 +66,7 @@ ScrollMenuArr scroll_menu = {
 MenuAction m_home = {
     .name = "Home",
     .next_menus = NULL,
-    .next_menus_len = 4,
+    .next_menus_len = 3,
     .last_lev_menus = NULL,
     .last_menus_len = 0,
     .param_val = "",
@@ -81,7 +83,7 @@ MenuAction m_home = {
 // 书籍菜单默认display_call: 显示书籍列表，默认不会展示下级菜单；
 // enter_call：进入下下级菜单，back_call:返回上级Home菜单
 MenuAction m_book_list = {
-    "书籍",
+    "书籍列表",
     .next_menus = NULL,
     .next_menus_len = 1,
     .last_lev_menus = NULL,
@@ -115,8 +117,8 @@ MenuAction m_ip = {
     .last_lev_menus = NULL,
     .last_menus_len = 1,
     .param_val = "",
-    .display = &display,
-    .enter_call = &enter_menu,
+    .display = &display_custome_image,
+    .enter_call = NULL,
     .choose_call = NULL,
     .back_call = &back_menu,
     .level = 1
@@ -145,7 +147,7 @@ MenuAction m_book_op = {
     .next_menus = NULL,
     .next_menus_len = 2,
     .last_lev_menus = NULL,
-    .last_menus_len = 4,
+    .last_menus_len = 3,
     .param_val = "",
     .display = &display_book_op_menu,
     .enter_call = &enter_menu,
@@ -176,9 +178,9 @@ MenuAction m_del = {
     .last_lev_menus = NULL,
     .last_menus_len = 1,
     .param_val = "",
-    .display = &display,
+    .display = &display_book_op_menu,
     .enter_call = &enter_menu,
-    .choose_call = NULL,
+    .choose_call = &next_menu,
     .back_call = &twice_back_menu,
     .level = 3
 };
@@ -191,10 +193,10 @@ MenuAction m_confirm = {
     .last_lev_menus = NULL,
     .last_menus_len = 2,
     .param_val = "",
-    .display = &display,
-    .enter_call = &enter_menu,
+    .display = &del_book_reset_filelist,
+    .enter_call = NULL,
     .choose_call = NULL,
-    .back_call = &back_menu,
+    .back_call = &del_op_back_menu,
     .level = 3
 };
 
@@ -205,15 +207,15 @@ MenuAction m_cancel = {
     .last_lev_menus = NULL,
     .last_menus_len = 2,
     .param_val = "",
-    .display = &display,
-    .enter_call = &enter_menu,
+    .display = &del_op_back_menu,
+    .enter_call = NULL,
     .choose_call = NULL,
-    .back_call = &back_menu,
+    .back_call = NULL,
     .level = 3
 };
 
 MenuAction *home_m_arr[] = {&m_home};
-MenuAction *first_lev_menu[] = {&m_book_list, &m_rev_file, &m_ip, &m_wifi};
+MenuAction *first_lev_menu[] = {&m_book_list, &m_rev_file, &m_ip};
 MenuAction *book_next_ms[] = {&m_book_op};
 MenuAction *book_op_next_ms[] = {&m_read, &m_del};
 MenuAction *del_next_ms[] = {&m_confirm, &m_cancel};
@@ -226,7 +228,7 @@ void init_menu() {
 }
 
 /**
- * 初始化滚动位置
+ * 初始化文件列表滚动位置
 */
 void init_scroll() {
     FileInfo *f_info = file_list;
@@ -561,7 +563,7 @@ void menu() {
     m_book_list.last_lev_menus = home_m_arr;
     m_rev_file.last_lev_menus = home_m_arr;
     m_ip.last_lev_menus = home_m_arr;
-    m_wifi.last_lev_menus = home_m_arr;
+    // m_wifi.last_lev_menus = home_m_arr;
 
     // book -> next
     m_book_list.next_menus = book_next_ms;
@@ -613,10 +615,13 @@ void doAction(int action) {
 
 void file_recv_op() {
     
-    // 显示打印
-    center_tip("wifi等待文件接收中");
+    
     // ap模式启动
     wifi_ap_server();
+    char* ip = wifi_get_local_ip();
+    char* start_tip = malloc_and_concat("接收文件中,ip: ", ip, NULL);
+    // 显示打印
+    center_tip(start_tip);
     // 监听下载文件
     bool success_rec = wifi_file_recv();
     // 关闭wifi
@@ -629,6 +634,9 @@ void file_recv_op() {
         tip = "程序中断，即将返回菜单";
     }
     center_tip(tip);
+
+    free(ip);
+    free(start_tip);
     delay(1500);
     // 退出当前菜单
     curr_m -> back_call();
@@ -723,4 +731,26 @@ void exit_read() {
     // 记录阅读位置到文件中
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
     record_book_read_pos_single(select_file->name);
+}
+
+// 书籍删除相关功能
+void del_book_reset_filelist() {
+    FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
+    // 删除书籍
+    del_book(select_file->name);
+    // 清空书籍列表
+    freeFilesInfo();
+    // 重建书籍列表
+    sd_files_dir("/");
+    // 初始化书籍滚动条
+    init_scroll();
+    // 返回菜单
+    curr_m -> back_call();
+}
+
+void del_op_back_menu() {
+    //  先返回删除确认菜单
+    curr_m = curr_m->last_lev_menus[0];
+    //  再返回删除->阅读功能->书籍列表
+    twice_back_menu();
 }

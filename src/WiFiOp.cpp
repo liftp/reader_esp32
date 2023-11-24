@@ -130,6 +130,11 @@ void wifi_ap_server() {
     Serial.println("ap server started");
 }
 
+char* wifi_get_local_ip() {
+    IPAddress ip = WiFi.softAPIP();
+    return malloc_and_concat(ip.toString().c_str(), NULL, NULL);
+}
+
 void wifi_server_end() {
     server.end();
 }

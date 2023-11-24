@@ -17,35 +17,6 @@ uint8_t buf[100] = {};
 int file_pos = 0;
 FileInfo *file_list;
 const char *file_end_flag = "###FILE_EOF###";
-
-void test_write() {
-    File read;
-    // unsigned char *str = (unsigned char*)"asd123fffww"; 
-    File f = SD.open("/test.txt", FILE_WRITE);
-    
-    f.println("testasd");
-    f.close();
-    read = SD.open("/test.txt");
-    Serial.println(read.readString());
-    read.close();
-
-    File f2 = SD.open("/test.txt", FILE_APPEND);
-    f2.println("testasd");
-    f2.close();
-
-    read = SD.open("/test.txt");
-    Serial.println(read.readString());
-    read.close();
-
-    File f3 = SD.open("/test.txt", FILE_WRITE);
-    f3.println("testasd");
-    Serial.println(f3.readString());
-    f3.close();
-
-    read = SD.open("/test.txt");
-    Serial.println(read.readString());
-    read.close();
-}
 /**
  * spi和sd启动
 */
@@ -137,6 +108,7 @@ void freeFilesInfo() {
         next = next->next;
         free(temp);
     }
+    file_list = NULL;
 }
 
 /**
@@ -343,6 +315,12 @@ CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint1
         .start_pos = i + 1
     };
     return result;
+}
+
+void del_book(const char* file_name) {
+    char* file_path = malloc_and_concat("/", file_name, NULL);
+    SD.remove(file_path);
+    free(file_path);
 }
 
 

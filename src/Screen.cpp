@@ -1,7 +1,6 @@
 
 #include "Screen.h"
 
-#include <Fonts/FreeMonoBold9pt7b.h>
 
 
 
@@ -341,4 +340,12 @@ void init_screen(SPIClass &hspi) {
   // 使用局部刷新需要的初始化特殊处理
   display_partial_init();
   init_char_width();
+}
+
+
+void display_custome_image() {
+  display.firstPage();
+  display.drawBitmap(0, 0, gImage_bg,  250, 118, GxEPD_BLACK, GxEPD_WHITE);
+  refresh_screen();
+  display.hibernate();
 }

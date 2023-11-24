@@ -13,4 +13,5 @@ void wifi_connect();
 void wifi_ap_server();
 void wifi_server_end();
 bool wifi_file_recv();
+char* wifi_get_local_ip();
 #endif
