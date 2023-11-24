@@ -22,6 +22,7 @@ void last_page_read_content_and_pos(long pos, const char* file_name);
 void rec_file_exit();
 void del_op_back_menu();
 void del_book_reset_filelist();
+void reset_books_file();
 
 
 // 菜单相关
@@ -166,7 +167,7 @@ MenuAction m_read = {
     .param_val = "",
     .display = &enter_read,
     .enter_call = &next_page,
-    .choose_call = &twice_back_menu,
+    .choose_call = &exit_read,
     .back_call = &last_page,
     .level = 3
 };
@@ -635,6 +636,8 @@ void file_recv_op() {
     }
     center_tip(tip);
 
+    reset_books_file();
+
     free(ip);
     free(start_tip);
     delay(1500);
@@ -725,27 +728,40 @@ void last_page_read_content_and_pos(long pos, const char* file_name) {
 }
 
 /**
-* 退出阅读
+* 退出阅读,记录阅读进度
 */
 void exit_read() {
     // 记录阅读位置到文件中
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
     record_book_read_pos_single(select_file->name);
+    twice_back_menu();
 }
 
 // 书籍删除相关功能
+
+/**
+ * 书籍列表重置
+*/
 void del_book_reset_filelist() {
     FileInfo *select_file = (FileInfo*) scroll.curr_ptr;
     // 删除书籍
     del_book(select_file->name);
+    // 重建书籍列表
+    reset_books_file();
+    // 返回菜单
+    curr_m -> back_call();
+}
+
+/**
+ * 重建书籍列表及滚动信息
+*/
+void reset_books_file() {
     // 清空书籍列表
     freeFilesInfo();
     // 重建书籍列表
     sd_files_dir("/");
     // 初始化书籍滚动条
     init_scroll();
-    // 返回菜单
-    curr_m -> back_call();
 }
 
 void del_op_back_menu() {

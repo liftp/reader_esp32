@@ -6,6 +6,8 @@
 #define MOSI 23
 #define SS 5    /**cs片选信号接4引脚*/
 
+void create_record_dir_if_not_exists();
+
 
 const char record_file[] = "/record/log.txt";
 const char record_path[] = "/record";
@@ -27,7 +29,7 @@ void sd_spi_and_setup(SPIClass *spi) {
         Serial.println("sd init failed");
         return;
     }
- 
+    create_record_dir_if_not_exists();
     // Serial.println("sd init done.");
     // 读取目录所有文件
     sd_files_dir("/");
@@ -203,12 +205,21 @@ void record_book_read_pos(const char* file_path, long his_read_pos) {
  * 从eep读取位置写入文件
 */
 void record_book_read_pos_single(const char* file_name) {
-    long pos = read_eep();
+    long pos = read_eep_curr();
     char *rec_file = malloc_and_concat(record_path, "/", file_name);
     File f = SD.open(rec_file, FILE_WRITE);
     f.println(pos);
     f.close();
     free(rec_file);
+}
+
+void clear_read_record_pos(const char* file_name) {
+    char *rec_file = malloc_and_concat(record_path, "/", file_name);
+    if (SD.exists(rec_file)) {
+        File f = SD.open(rec_file, FILE_WRITE);
+        f.println(0);
+        f.close();
+    }
 }
 
 void create_record_dir_if_not_exists() {
@@ -220,7 +231,6 @@ void create_record_dir_if_not_exists() {
  * 单文件读取阅读位置
 */
 long book_recorder_read_pos_single(const char* file_name) {
-    create_record_dir_if_not_exists();
     char *rec_file = malloc_and_concat(record_path, "/", file_name);
     if (!SD.exists(rec_file)) {
         File f = SD.open(rec_file, FILE_WRITE);
@@ -319,8 +329,15 @@ CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint1
 
 void del_book(const char* file_name) {
     char* file_path = malloc_and_concat("/", file_name, NULL);
+    char* record_file_path = malloc_and_concat(record_path, "/", file_name);
+    // 删除书籍
     SD.remove(file_path);
+    // 删除阅读进度记录文件
+    if (SD.exists(record_file_path)) {
+        SD.remove(record_file_path);
+    }
     free(file_path);
+    free(record_file_path);
 }
 
 
