@@ -3,7 +3,12 @@
 #### 项目介绍
 
 1. 使用esp32 wroom芯片，WeAct-Epaper 2.13寸墨水屏，sd模块，三个按键，实现简易的电子书阅读器，支持书籍列表，阅读（上下翻页，位置记录），删除等简单功能，并支持wifi下文件接收；菜单系统可进行简单功能扩展
+
 2. 项目展示：
+
+   * 整体模块：
+
+     ![](https://github.com/liftp/socket_file_send/blob/image/modules.jpg?raw=true)
 
 #### 开发框架
 
