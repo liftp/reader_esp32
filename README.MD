@@ -8,33 +8,33 @@
 
    * 整体模块：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/modules.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/modules.jpg)
 
    * 菜单列表：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/menu_list.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/menu_list.jpg)
 
    * 书籍列表：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/book_list.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/book_list.jpg)
 
    * 阅读展示：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/read.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/read.jpg)
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/read_show1.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/read_show1.jpg)
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/read_show1.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/read_show1.jpg)
 
    * 文件接收：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/file_receive.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/file_receive.jpg)
 
    * 图像展示：
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/wall_paper_menu.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/wall_paper_menu.jpg)
 
-     ![](https://github.com/liftp/reader_esp32/blob/main/image/wall_paper_display.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/main/image/wall_paper_display.jpg)
 
      
 
