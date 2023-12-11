@@ -8,7 +8,35 @@
 
    * 整体模块：
 
-     ![](https://github.com/liftp/socket_file_send/blob/image/modules.jpg?raw=true)
+     ![](https://github.com/liftp/reader_esp32/blob/image/modules.jpg?raw=true)
+
+   * 菜单列表：
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/menu_list.jpg?raw=true)
+
+   * 书籍列表：
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/book_list.jpg?raw=true)
+
+   * 阅读展示：
+
+     ![](https://github.com/liftp/reader_esp32d/blob/image/read.jpg?raw=true)
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/read_show1.jpg?raw=true)
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/read_show1.jpg?raw=true)
+
+   * 文件接收：
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/file_receive.jpg?raw=true)
+
+   * 图像展示：
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/wall_paper_menu.jpg?raw=true)
+
+     ![](https://github.com/liftp/reader_esp32/blob/image/wall_paper_display.jpg?raw=true)
+
+     
 
 #### 开发框架
 
