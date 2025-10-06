@@ -39,15 +39,15 @@ void action() {
         operate_times = 0;
     }
     // 记录无操作时间，
-    operate_times ++;
+    // operate_times ++;
     // 如果超过最大无操作次数，40*0.5s=20s，大约20s无操作；
     // 当然有可能被其他操作阻塞，例如文件传输，先不进行处理防止中断文件传输
-    if (operate_times > sleep_times) {
-        // 休眠,33端口高电平恢复
-        esp_sleep_enable_ext1_wakeup(1ull<<33, ESP_EXT1_WAKEUP_ANY_HIGH);
-        esp_deep_sleep_start();
-        operate_times = 0;
-    }
+    // if (operate_times > sleep_times) {
+    //     // 休眠,33端口高电平恢复
+    //     esp_sleep_enable_ext1_wakeup(1ull<<33, ESP_EXT1_WAKEUP_ANY_HIGH);
+    //     esp_deep_sleep_start();
+    //     operate_times = 0;
+    // }
     delay(500);
 }
 

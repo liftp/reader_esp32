@@ -9,8 +9,8 @@ const char* pwd = "123456";
 char dest_ssid[20] = "";
 char dest_pwd[20] = "";
 
-String down_dir = "/localdown/";
-String remote_ip = "192.168.137.1";
+String down_dir = "/download/";
+String remote_ip = "192.168.0.107";
 
 
 /**
@@ -64,7 +64,8 @@ void http_file_to_sd(HTTPClient &http, String file_name) {
     // return http.getStreamPtr();
     WiFiClient *stream = http.getStreamPtr();
 
-    uint8_t * buf = (uint8_t *) malloc(sizeof(uint8_t) * 256);
+    // uint8_t * buf = (uint8_t *) malloc(sizeof(uint8_t) * 256);
+    char buf[256] = {};
     String file_path = "/" + file_name;
     if (sd_file_exists(file_path)) {
         Serial.printf("文件：%s 已存在", file_path);
@@ -73,24 +74,25 @@ void http_file_to_sd(HTTPClient &http, String file_name) {
     File wr_file = sd_file_write_ready(file_path);
     Serial.printf("buf size: %d \n", sizeof(buf));
     // String show;
-    while (http.connected() && (len > 0 || len == -1)) {
+    while (http.connected() && (len > 0)) {
         size_t size = stream -> available();
         if (size) {
-            size_t read_size = (size > sizeof(buf)) ? sizeof(buf) : size;
-            int c = stream -> readBytes(buf, read_size);
+            // size_t read_size = (size > sizeof(buf)) ? sizeof(buf) : size;
+            int c = stream -> readBytes(buf, sizeof(buf) - 1);
+            // int c = stream -> readBytes(buf, read_size);
             // 结束标记
-            buf[read_size] = 0;
+            buf[c] = '\0';
             // 打印写入内容
             String buf_content = String(buf, c);
             Serial.print(buf_content);
-            wr_file.println(buf_content);
+            wr_file.print(buf);
             if (len > 0) {
                 len -= c;
             }
         }
     }
     // 释放缓冲区
-    free(buf);
+    // free(buf);
     // 关闭sd文件
     wr_file.close();
 }
@@ -109,6 +111,7 @@ void get_file_and_call(String file_name, void (*file_call) (HTTPClient&, String)
     if (http_code == HTTP_CODE_OK) {
         Serial.println("http请求成功");
         file_call(http, file_name);
+        http.end();
     } else {
         Serial.println("http请求失败");
     }
@@ -141,6 +144,12 @@ void wifi_server_end() {
 
 void set_wifi_conn_info() {
 
+}
+
+void wifi_sta_conn() {
+    WiFiServer server(80);
+    wifi_connect();
+    server.begin();
 }
 
 
