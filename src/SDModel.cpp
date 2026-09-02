@@ -247,6 +247,34 @@ long book_recorder_read_pos_single(const char* file_name) {
 }
 
 /**
+ * 根据记录的阅读位置计算书籍的阅读进度百分比，返回0-100的整数，计算失败返回0
+*/
+int book_read_progress(const char* file_name) {
+    char *book_path = malloc_and_concat("/", file_name, NULL);
+    if (!SD.exists(book_path)) {
+        free(book_path);
+        return 0;
+    }
+    File book = SD.open(book_path);
+    long total_size = book.size();
+    book.close();
+    free(book_path);
+    // 空文件无法计算进度
+    if (total_size <= 0) {
+        return 0;
+    }
+    long read_pos = book_recorder_read_pos_single(file_name);
+    if (read_pos < 0) {
+        read_pos = 0;
+    }
+    // 位置超出文件大小认为已读完
+    if (read_pos >= total_size) {
+        return 100;
+    }
+    return (int)(read_pos * 100 / total_size);
+}
+
+/**
  * 读取位置并覆写eep
 */
 long book_recorder_pos_and_write_eep(const char* file_name) {

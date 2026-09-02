@@ -29,6 +29,7 @@ void sd_files_dir(String);
 void freeFilesInfo();
 void record_book_read_pos_single(const char* file_name);
 long book_recorder_read_pos_single(const char* file_name);
+int book_read_progress(const char* file_name);
 long book_recorder_pos_and_write_eep(const char* file_name);
 char* read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos);
 CharWithPos reverse_read_book_content_from_last_pos(const char* file_path, uint16_t read_size, long his_read_pos, uint16_t page_chars);
