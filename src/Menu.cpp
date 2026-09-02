@@ -24,6 +24,7 @@ void del_op_back_menu();
 void del_book_reset_filelist();
 void reset_books_file();
 void book_list_not_empty_enter();
+void file_download_op();
 
 
 // 菜单相关
@@ -633,7 +634,13 @@ void doAction(int action) {
         }
 }
 
-
+void file_download_op() {
+    // wifi sta 模式
+    wifi_sta_conn();
+    get_file_and_call("越绝书.txt", http_file_to_sd);
+    Serial.println("download end");
+    wifi_server_end();
+}
 
 void file_recv_op() {
     
@@ -737,6 +744,7 @@ void last_page_read(long pos, const char* file_name) {
  * 从指定位置往前读取一页内容
 */
 void last_page_read_content_and_pos(long pos, const char* file_name) {
+    Serial.printf("pos:%d\n", pos);
     char *file_path = malloc_and_concat("/", file_name, NULL);
     CharWithPos read_content = reverse_read_book_content_from_last_pos(file_path, get_page_chars(), pos, get_page_chars());
     long new_pos = text_multi_line_show(read_content.str + read_content.start_pos, true);
